@@ -4,7 +4,6 @@ import (
 	"backend/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
 )
 
 func main() {
