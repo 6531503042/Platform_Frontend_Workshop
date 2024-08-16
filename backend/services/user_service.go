@@ -5,9 +5,7 @@ import (
 	"backend/utils"
 	"context"
 	"encoding/json"
-	"log"
 
-	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,25 +20,10 @@ func CreateUser(user models.User) (*mongo.InsertOneResult, error) {
 		return nil, err
 	}
 
-	// Publish to Kafka
-	data, err := json.Marshal(user)
-	if err != nil {
-		log.Printf("Failed to marshal user for Kafka: %v", err)
-		return result, nil
-	}
-
-	msg := kafka.Message{
-		Value: data,
-	}
-	err = utils.KafkaWriter.WriteMessages(context.Background(), msg)
-	if err != nil {
-		log.Printf("Failed to write message to Kafka: %v", err)
-	}
-
 	return result, nil
 }
 
-func GetUser (id primitive.ObjectID) (*models.User, error) {
+func GetUser(id primitive.ObjectID) (*models.User, error) {
 
 	// Check redis cache
 	cacheKey := "user:" + id.Hex()
@@ -54,10 +37,10 @@ func GetUser (id primitive.ObjectID) (*models.User, error) {
 		return &user, nil
 	}
 
-	//Fetch from MongoDB
+	// Fetch from MongoDB
 	collection := utils.MongoDB.Collection("users")
 	var user models.User
-	err = collection.FindOne(context.Background(), bson.M{"_id":id}).Decode(&user)
+	err = collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 
 	if err != nil {
 		return nil, err
