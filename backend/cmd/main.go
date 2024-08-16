@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/routes"
 	"backend/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,24 +9,19 @@ import (
 
 func main() {
 
-	//TODO: Initalize Redis, MongoDB, Kafka
+	// Initialize Redis and MongoDB
 	utils.InitRedis()
 	utils.InitMongoDB()
-	utils.InitKafka()
 
-	//TODO: Fiber create application
+	// Initialize Fiber application
 	app := fiber.New()
 
-	//TODO: Routes
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
+	// Set up routes
+	routes.Setup(app)
 
-	//TODO: Start server
+	// Start server on port 3000
 	err := app.Listen(":3000")
 	if err != nil {
 		panic(err)
 	}
-
-
 }
