@@ -52,3 +52,53 @@ func GetUser(id primitive.ObjectID) (*models.User, error) {
 
 	return &user, nil
 }
+
+func ListUser() ([]models.User, error) {
+	collection := utils.MongoDB.Collection("users")
+	cursor, err := collection.Find(context.Background(), bson.M {})
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(context.Background())
+
+	var users []models.User
+
+	if err = cursor.All(context.Background(), &users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+
+func UpdateUser(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
+	collection := utils.MongoDB.Collection("users")
+	return collection.UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": updateData})
+}
+// DeleteUser deletes a user by ID from MongoDB and Redis.
+func DeleteUser(id primitive.ObjectID) (*mongo.DeleteResult, error) {
+	collection := utils.MongoDB.Collection("users")
+	cacheKey := "user:" + id.Hex()
+
+	// Delete user from MongoDB
+	result, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete user from Redis cache
+	utils.RedisClient.Del(context.Background(), cacheKey)
+
+	return result, nil
+}
+
+// GetUserCount retrieves the total number of users.
+func GetUserCount() (int64, error) {
+	collection := utils.MongoDB.Collection("users")
+	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
