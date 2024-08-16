@@ -12,20 +12,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateUser(c * fiber.Ctx) error {
+// CreateUser handles user creation requests.
+func CreateUser(c *fiber.Ctx) error {
 	var user models.User
 	if err := c.BodyParser(&user); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	result, err := services.CreateUser(user)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
-func GetUser(c * fiber.Ctx) error {
+// GetUser handles fetching a user by ID.
+func GetUser(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
@@ -43,7 +45,6 @@ func GetUser(c * fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(user)
 }
-
 
 // UpdateUser handles requests to update a user's information.
 func UpdateUser(c *fiber.Ctx) error {
@@ -65,6 +66,7 @@ func UpdateUser(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(result)
 }
+
 
 // DeleteUser handles requests to delete a user by ID.
 func DeleteUser(c *fiber.Ctx) error {
@@ -96,6 +98,7 @@ func GetUserCount(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"userCount": count})
 }
 
+// ListUsers handles requests to list all users.
 func ListUsers(c *fiber.Ctx) error {
 	users, err := services.ListUser()
 	if err != nil {
@@ -110,8 +113,8 @@ func GetUserStatistics(c *fiber.Ctx) error {
 
 	// Example: Get user count by month
 	pipeline := mongo.Pipeline{
-		{{"$group", bson.D{{"_id", bson.D{{"$substr", bson.A{"$createdAt", 0, 7}}}}, {"count", bson.D{{"$sum", 1}}}}}},
-		{{"$sort", bson.D{{"_id", 1}}}},
+		{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{"$sum", 1}}}}}},
+		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
 	}
 
 	cursor, err := collection.Aggregate(context.Background(), pipeline)
