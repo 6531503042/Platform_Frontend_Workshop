@@ -14,5 +14,6 @@ func Setup(app *fiber.App) {
 	app.Put("/users/:id", controllers.UpdateUser)
 	app.Delete("/users/:id", controllers.DeleteUser)
 	app.Get("/user-count", controllers.GetUserCount)
+	app.Get("/user-statistics", controllers.GetUserStatistics)
 
 }
