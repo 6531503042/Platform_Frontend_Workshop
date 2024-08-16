@@ -7,9 +7,9 @@ const (
 	RedisDB		 = 0
 
 	//MongoDB Config
-	MongoURI     = "mongodb://localhost:27017"
-	MongoUser	 = "admin"
-	MongoPass	 = "admin"
+	MongoURI     = "mongodb://localhost:27017/test"
+	// MongoUser	 = "admin"
+	// MongoPass	 = "RML40Dbr9sxHHlwG"
 
 	//Kafka Config
 	KafkaBroker  = "localhost:9092"
