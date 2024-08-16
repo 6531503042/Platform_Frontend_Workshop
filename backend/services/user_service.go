@@ -20,6 +20,11 @@ func CreateUser(user models.User) (*mongo.InsertOneResult, error) {
 		return nil, err
 	}
 
+	// Cache result in redis
+	userData, _ := json.Marshal(user)
+	cacheKey := "user:" + user.ID.Hex()
+	utils.RedisClient.Set(context.Background(), cacheKey, userData, 0)
+
 	return result, nil
 }
 
@@ -53,9 +58,10 @@ func GetUser(id primitive.ObjectID) (*models.User, error) {
 	return &user, nil
 }
 
+
 func ListUser() ([]models.User, error) {
 	collection := utils.MongoDB.Collection("users")
-	cursor, err := collection.Find(context.Background(), bson.M {})
+	cursor, err := collection.Find(context.Background(), bson.M{})
 
 	if err != nil {
 		return nil, err
@@ -72,9 +78,21 @@ func ListUser() ([]models.User, error) {
 }
 
 
+
 func UpdateUser(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
 	collection := utils.MongoDB.Collection("users")
-	return collection.UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": updateData})
+	filter := bson.M{"_id": id}
+	update := bson.M{"$set": updateData}
+	result, err := collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return nil, err
+	}
+
+	// Invalidate the cache
+	cacheKey := "user:" + id.Hex()
+	utils.RedisClient.Del(context.Background(), cacheKey)
+
+	return result, nil
 }
 // DeleteUser deletes a user by ID from MongoDB and Redis.
 func DeleteUser(id primitive.ObjectID) (*mongo.DeleteResult, error) {
