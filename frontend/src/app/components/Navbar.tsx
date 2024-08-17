@@ -1,24 +1,29 @@
+// components/Navbar.tsx
 import Link from 'next/link';
-import { Navbar } from 'flowbite-react';
+import { Navbar as FlowbiteNavbar } from 'flowbite-react';
 
-const MyNavbar: React.FC = () => {
+const Navbar = () => {
   return (
-    <Navbar fluid={true} rounded={true}>
-      <Navbar.Brand href="/">
-        <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
-          MyApp
+    <FlowbiteNavbar fluid={true} rounded={true}>
+      <FlowbiteNavbar.Brand href="/">
+        <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">
+          My App
         </span>
-      </Navbar.Brand>
-      <Navbar.Toggle />
-      <Navbar.Collapse>
-        <Navbar.Link href="/" active={true}>
+      </FlowbiteNavbar.Brand>
+      <FlowbiteNavbar.Toggle />
+      <FlowbiteNavbar.Collapse>
+        <FlowbiteNavbar.Link href="/" active={true}>
           Home
-        </Navbar.Link>
-        <Navbar.Link href="/users">Users</Navbar.Link>
-        <Navbar.Link href="/about">About</Navbar.Link>
-      </Navbar.Collapse>
-    </Navbar>
+        </FlowbiteNavbar.Link>
+        <FlowbiteNavbar.Link href="/user">
+          User
+        </FlowbiteNavbar.Link>
+        <FlowbiteNavbar.Link href="/chart">
+          Chart
+        </FlowbiteNavbar.Link>
+      </FlowbiteNavbar.Collapse>
+    </FlowbiteNavbar>
   );
 };
 
-export default MyNavbar;
+export default Navbar;
