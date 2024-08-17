@@ -27,7 +27,7 @@ app.Use(cors.New(cors.Config{
 	routes.Setup(app)
 
 	// Start server on port 3000
-	err := app.Listen(":3000")
+	err := app.Listen(":5000")
 	if err != nil {
 		panic(err)
 	}
