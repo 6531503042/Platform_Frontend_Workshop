@@ -16,4 +16,11 @@ func Setup(app *fiber.App) {
 	app.Get("/user-count", controllers.GetUserCount)
 	app.Get("/user-statistics", controllers.GetUserStatistics)
 
+	app.Post("/products", controllers.CreateProduct)
+	app.Get("/products/:id", controllers.GetProduct)
+	app.Get("/products", controllers.ListProduct)
+	app.Put("/products/:id", controllers.UpdateProduct)
+	app.Delete("/products/:id", controllers.DeleteProduct)
+	app.Get("/product-count", controllers.GetProductCount)
+	app.Get("/product-statistics", controllers.GetProductStatistics)
 }
