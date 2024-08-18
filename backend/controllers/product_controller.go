@@ -4,7 +4,6 @@ import (
 	"backend/models"
 	"backend/services"
 	"backend/utils"
-	"context"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,15 +11,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateProduct( c* fiber.Ctx) error {
+// ProductController struct to hold service instance
+type ProductController struct {
+	service *services.ProductService
+}
+
+// NewProductController creates a new instance of ProductController
+func NewProductController() *ProductController {
+	// Get MongoDB and Redis clients
+	productCollection := utils.MongoDB.Collection("products")
+	redisClient := utils.RedisClient // Make sure you have this initialized in your utils
+
+	return &ProductController{
+		service: services.NewProductService(productCollection, redisClient),
+	}
+}
+func (pc *ProductController) CreateProduct(c *fiber.Ctx) error {
 	var product models.Product
-
-
 	if err := c.BodyParser(&product); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	result, err := services.CreateProduct(product)
+	// Add validation here
+	if product.Name == "" || product.Price <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product data"})
+	}
+
+	result, err := pc.service.CreateProduct(product)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -29,14 +46,14 @@ func CreateProduct( c* fiber.Ctx) error {
 }
 
 
-func GetProduct(c *fiber.Ctx) error {
+func (pc *ProductController) GetProduct(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid product ID")
 	}
 
-	product, err := services.GetProduct(id)
+	product, err := pc.service.GetProduct(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get product")
 	}
@@ -48,17 +65,14 @@ func GetProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(product)
 }
 
-
-func DeleteProduct(c *fiber.Ctx) error {
+func (pc *ProductController) DeleteProduct(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
-
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalud product ID")
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid product ID")
 	}
 
-	result, err := services.DeleteProduct(id)
-
+	result, err := pc.service.DeleteProduct(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -70,8 +84,7 @@ func DeleteProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).SendString("Product deleted successfully")
 }
 
-
-func UpdateProduct(c *fiber.Ctx) error {
+func (pc *ProductController) UpdateProduct(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
@@ -83,7 +96,7 @@ func UpdateProduct(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	result, err := services.UpdateProduct(id, updateData)
+	result, err := pc.service.UpdateProduct(id, updateData)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update product")
 	}
@@ -91,9 +104,8 @@ func UpdateProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(result)
 }
 
-
-func GetProductCount(c *fiber.Ctx) error {
-	count, err := services.GetProductCount()
+func (pc *ProductController) GetProductCount(c *fiber.Ctx) error {
+	count, err := pc.service.GetProductCount()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get product count")
 	}
@@ -101,8 +113,8 @@ func GetProductCount(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"productCount": count})
 }
 
-func ListProduct(c *fiber.Ctx) error {
-	products, err := services.ListProduct()
+func (pc *ProductController) ListProduct(c *fiber.Ctx) error {
+	products, err := pc.service.ListProduct()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get products")
 	}
@@ -110,24 +122,17 @@ func ListProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(products)
 }
 
-func GetProductStatistics (c * fiber.Ctx) error {
-	collection := utils.MongoDB.Collection("products")
-
-	//Pipeline
+func (pc *ProductController) GetProductStatistics(c *fiber.Ctx) error {
 	pipeline := mongo.Pipeline{
-        {{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
-        {{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
-    }
-
-	results, err := collection.Aggregate(context.Background(), pipeline)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, // Group by month
+			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}, // Count documents
+		}}},
+		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}}, // Sort by month
 	}
-	defer results.Close(context.Background())
 
-	var statistics []bson.M
-
-	if err = results.All(context.Background(), &statistics); err != nil {
+	statistics, err := pc.service.AggregateProducts(pipeline)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
