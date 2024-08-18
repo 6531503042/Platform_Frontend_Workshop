@@ -2,119 +2,138 @@ package services
 
 import (
 	"backend/models"
-	"backend/utils"
 	"context"
 	"encoding/json"
 
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateProduct (product models.Product) (*mongo.InsertOneResult, error) {
-	collection := utils.MongoDB.Collection("products")
-
-	result, err := collection.InsertOne(context.Background(), product)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache result in redis
-	productData, _ := json.Marshal(product)
-	cacheKey := "product:" + product.ID.Hex()
-	utils.RedisClient.Set(context.Background(), cacheKey, productData, 0)
-
-	return result, nil
+type ProductService struct {
+	collection *mongo.Collection
+	redisClient *redis.Client
 }
 
-func GetProduct(id primitive.ObjectID) (*models.Product, error) {
-	// Check redis cache
-	cacheKey := "product:" + id.Hex()
-	cachedProduct, err := utils.RedisClient.Get(context.Background(), cacheKey).Result()
-	if err == nil {
-		var product models.Product
-		err := json.Unmarshal([]byte(cachedProduct), &product)
-		if err != nil {
-			return nil, err
-		}
-		return &product, nil
+type ProductStatistics struct {
+	Month  string `json:"month"`
+	Count  int    `json:"count"`
+	Status string `json:"status,omitempty"`
+}
+
+// NewProductService creates a new instance of ProductService
+func NewProductService(collection *mongo.Collection, redisClient *redis.Client) *ProductService {
+	return &ProductService{
+		collection: collection,
+		redisClient: redisClient,
 	}
+}
 
-	// Fetch from MongoDB
-	collection := utils.MongoDB.Collection("products")
-	var product models.Product
-	err = collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&product)
-
+func (s *ProductService) CreateProduct(product models.Product) (*mongo.InsertOneResult, error) {
+	result, err := s.collection.InsertOne(context.Background(), product)
 	if err != nil {
 		return nil, err
 	}
 
 	// Cache result in Redis
 	productData, _ := json.Marshal(product)
-	utils.RedisClient.Set(context.Background(), cacheKey, productData, 0)
+	cacheKey := "product:" + product.ID.Hex()
+	s.redisClient.Set(context.Background(), cacheKey, productData, 0)
 
-	return &product, nil
+	return result, nil
 }
 
+func (s *ProductService) GetProduct(id primitive.ObjectID) (*models.Product, error) {
+	// Check Redis cache
+	cacheKey := "product:" + id.Hex()
+	cachedProduct, err := s.redisClient.Get(context.Background(), cacheKey).Result()
+	if err == nil {
+		var product models.Product
+		if err := json.Unmarshal([]byte(cachedProduct), &product); err != nil {
+			return nil, err
+		}
+		return &product, nil
+	}
 
-func ListProduct() ([]models.Product, error) {
-	collection := utils.MongoDB.Collection("products")
-	cursor, err := collection.Find(context.Background(), bson.M{})
-
+	// Fetch from MongoDB
+	var product models.Product
+	err = s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&product)
 	if err != nil {
 		return nil, err
 	}
 
+	// Cache result in Redis
+	productData, _ := json.Marshal(product)
+	s.redisClient.Set(context.Background(), cacheKey, productData, 0)
+
+	return &product, nil
+}
+
+func (s *ProductService) ListProduct() ([]models.Product, error) {
+	cursor, err := s.collection.Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
 	defer cursor.Close(context.Background())
 
 	var products []models.Product
-
-	if err = cursor.All(context.Background(), &products); err != nil {
+	if err := cursor.All(context.Background(), &products); err != nil {
 		return nil, err
 	}
 	return products, nil
 }
 
-
-func UpdateProduct(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
-	collection := utils.MongoDB.Collection("products")
+func (s *ProductService) UpdateProduct(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": updateData}
-	result, err := collection.UpdateOne(context.Background(), filter, update)
+	result, err := s.collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return nil, err
 	}
 
 	// Invalidate the cache
 	cacheKey := "product:" + id.Hex()
-	utils.RedisClient.Del(context.Background(), cacheKey)
+	s.redisClient.Del(context.Background(), cacheKey)
 
 	return result, nil
 }
 
-
-func DeleteProduct(id primitive.ObjectID) (*mongo.DeleteResult, error) {
-	collection := utils.MongoDB.Collection("products")
+func (s *ProductService) DeleteProduct(id primitive.ObjectID) (*mongo.DeleteResult, error) {
 	cacheKey := "product:" + id.Hex()
 
 	// Delete product from MongoDB
-	result, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	result, err := s.collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
 		return nil, err
 	}
 
 	// Invalidate the cache
-	utils.RedisClient.Del(context.Background(), cacheKey)
+	s.redisClient.Del(context.Background(), cacheKey)
 
 	return result, nil
 }
 
-func GetProductCount() (int64, error) {
-	collection := utils.MongoDB.Collection("products")
-
-	count, err := collection.CountDocuments(context.Background(), bson.M{})
+func (s *ProductService) GetProductCount() (int64, error) {
+	count, err := s.collection.CountDocuments(context.Background(), bson.M{})
 	if err != nil {
 		return 0, err
 	}
 	return count, nil
 }
+
+func (s *ProductService) AggregateProducts(pipeline mongo.Pipeline) ([]ProductStatistics, error) {
+	cursor, err := s.collection.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var statistics []ProductStatistics
+	if err := cursor.All(context.Background(), &statistics); err != nil {
+		return nil, err
+	}
+
+	return statistics, nil
+}
+
