@@ -20,30 +20,31 @@
 ์Needed --> Fiber, MongoDB, Redis, Next, Flowbite สำหรับทำ Chart Statistics 
 
 ## 🐱 Web Development (Front-end)
-|ลำดับที่| Name | Version | Install |
-|:----:|:------------------------:|:----:|
-|1|   Next        | **Next.js 14.2** |npx create-next-app@latest |
-|2|   Flowbite       | **latest** | npm install tailwindcss flowbite flowbite-react |
+| ลำดับที่ | Name       | Version       | Install Command                        |
+|:--------:|:----------:|:-------------:|:--------------------------------------:|
+| 1        | Next.js    | **14.2**      | `npx create-next-app@latest`           |
+| 2        | Flowbite   | **latest**    | `npm install tailwindcss flowbite flowbite-react` |
 
 ## 🧲 Web Development (Back-end)
-|ลำดับที่| Name | Version | Install |
-|:----:|:------------------------:|:----:|
-|1|   Go        | **Go 1.23.0** | **(MacOS)** brew update&& brew install golang |
-|2|   Fiber       | **Fiber 1.17** | go get github.com/gofiber/fiber/v2 |
+| ลำดับที่ | Name   | Version     | Install Command                                |
+|:--------:|:------:|:-----------:|:----------------------------------------------:|
+| 1        | Go     | **1.23.0**  | **(MacOS)** `brew update && brew install golang` |
+| 2        | Fiber  | **1.17**    | `go get github.com/gofiber/fiber/v2`          |
 
 ## 👒 Database
-|ลำดับที่| Name | Version | Install |
-|:----:|:------------------------:|:----:|
-|1|   MongoDB        | **MongoDB 7.0.2** | brew tap mongodb/brew && brew install mongodb-community@7.0 |
-|2|   Redis       | **Redis 7.0.11** | brew install redis |
+| ลำดับที่ | Name    | Version     | Install Command                                    |
+|:--------:|:-------:|:-----------:|:--------------------------------------------------:|
+| 1        | MongoDB | **7.0.2**   | `brew tap mongodb/brew && brew install mongodb-community@7.0` |
+| 2        | Redis   | **7.0.11**  | `brew install redis`                              |
 
-## 🤖 Tools and Utilities 
-|ลำดับที่| Name| Install |
-|:----:|:------------------------:|
-|1|   Git & GitHub        | brew install git |
-|2|   Postman       | brew install --cask postman |
-|3|   Docker        | brew install --cask docker |
-|4|   Docker Compose       | brew install docker-compose |
+## 🤖 Tools and Utilities
+| ลำดับที่ | Name            | Install Command            |
+|:--------:|:---------------:|:--------------------------:|
+| 1        | Git & GitHub     | `brew install git`         |
+| 2        | Postman          | `brew install --cask postman` |
+| 3        | Docker           | `brew install --cask docker` |
+| 4        | Docker Compose   | `brew install docker-compose` |
+
 
 # 📖 Quick start
 
