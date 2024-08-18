@@ -8,19 +8,38 @@ import (
 
 func Setup(app *fiber.App) {
 
-	app.Post("/users", controllers.CreateUser)
-	app.Get("/users/:id", controllers.GetUser)
-	app.Get("/users", controllers.ListUsers)
-	app.Put("/users/:id", controllers.UpdateUser)
-	app.Delete("/users/:id", controllers.DeleteUser)
-	app.Get("/user-count", controllers.GetUserCount)
-	app.Get("/user-statistics", controllers.GetUserStatistics)
+	
 
-	app.Post("/products", controllers.CreateProduct)
-	app.Get("/products/:id", controllers.GetProduct)
-	app.Get("/products", controllers.ListProduct)
-	app.Put("/products/:id", controllers.UpdateProduct)
-	app.Delete("/products/:id", controllers.DeleteProduct)
-	app.Get("/product-count", controllers.GetProductCount)
-	app.Get("/product-statistics", controllers.GetProductStatistics)
+	// Initialize controller
+	userController := controllers.NewUserController()
+	productController := controllers.NewProductController()
+	orderController := controllers.NewOrderController()
+	
+
+
+	//User
+	app.Post("/users", userController.CreateUser)
+	app.Get("/users/:id", userController.GetUser)
+	app.Get("/users", userController.ListUsers)
+	app.Put("/users/:id", userController.UpdateUser)
+	app.Delete("/users/:id", userController.DeleteUser)
+	app.Get("/user-count", userController.GetUserCount)
+	app.Get("/user-statistics", userController.GetUserStatistics)
+
+	//Product
+	app.Post("/products", productController.CreateProduct)
+	app.Get("/products/:id", productController.GetProduct)
+	app.Get("/products", productController.ListProduct)
+	app.Put("/products/:id", productController.UpdateProduct)
+	app.Delete("/products/:id", productController.DeleteProduct)
+	app.Get("/product-count", productController.GetProductCount)
+	app.Get("/product-statistics", productController.GetProductStatistics)
+
+	//Order
+	app.Post("/orders", orderController.CreateOrder)
+	app.Get("/orders/:id", orderController.GetOrderById)
+	app.Get("/orders", orderController.GetAllOrders)
+	app.Put("/orders/:id", orderController.UpdateOrder)
+	app.Delete("/orders/:id", orderController.DeleteOrder)
+	app.Get("/order-statistics", orderController.GetOrderStatistics)
 }
