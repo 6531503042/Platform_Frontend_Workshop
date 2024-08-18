@@ -5,6 +5,7 @@ import (
 	"backend/services"
 	"backend/utils"
 	"context"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -109,24 +110,29 @@ func ListUsers(c *fiber.Ctx) error {
 
 // GetUserStatistics provides aggregated data for charts.
 func GetUserStatistics(c *fiber.Ctx) error {
-	collection := utils.MongoDB.Collection("users")
+    collection := utils.MongoDB.Collection("users")
 
-	// Example: Get user count by month
-	pipeline := mongo.Pipeline{
-		{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{"$sum", 1}}}}}},
-		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
-	}
+    // Define the aggregation pipeline
+    pipeline := mongo.Pipeline{
+        {{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+        {{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
+    }
 
-	cursor, err := collection.Aggregate(context.Background(), pipeline)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-	defer cursor.Close(context.Background())
+    // Execute the aggregation
+    cursor, err := collection.Aggregate(context.Background(), pipeline)
+    if err != nil {
+        log.Printf("Aggregation error: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
+    }
+    defer cursor.Close(context.Background())
 
-	var results []bson.M
-	if err = cursor.All(context.Background(), &results); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
+    // Retrieve results
+    var results []bson.M
+    if err := cursor.All(context.Background(), &results); err != nil {
+        log.Printf("Cursor error: %v", err)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
+    }
 
-	return c.Status(fiber.StatusOK).JSON(results)
+    // Return results
+    return c.Status(fiber.StatusOK).JSON(results)
 }
