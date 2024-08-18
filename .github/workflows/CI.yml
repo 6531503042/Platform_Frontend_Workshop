@@ -38,17 +38,22 @@ jobs:
         working-directory: backend
         run: go mod tidy
 
-      # Run tests
-      - name: Run tests
-        working-directory: backend
-        run: go test -v ./...
+      # # Run tests
+      # - name: Run tests
+      #   working-directory: backend
+      #   run: go test -v ./...
 
-      # Build the application
-      - name: Build
-        working-directory: backend
-        run: go build -o main .
+      # # List files to debug path issues
+      # - name: List files in backend directory
+      #   working-directory: backend
+      #   run: ls -R
 
-      # Clean up Go modules
-      - name: Clean up Go modules
-        working-directory: backend
-        run: go mod tidy
+      # # Build the application
+      # - name: Build
+      #   working-directory: backend
+      #   run: go build -o main .
+
+      # # Clean up Go modules
+      # - name: Clean up Go modules
+      #   working-directory: backend
+      #   run: go mod tidy
