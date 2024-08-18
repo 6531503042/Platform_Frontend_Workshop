@@ -4,8 +4,6 @@
 
 ![fiber_cover_gh](https://user-images.githubusercontent.com/11155743/112001218-cf258b00-8b2f-11eb-9c6d-d6c38a09af86.jpg)
 
-## 📝 คำอธิบาย
-เราจะทำการสร้าง API ด้วย Go ที่จะใช้ Fiber และ PostgreSQL ที่จะใช้ JWT และ Swagger สำหรับการทดสอบครั้งนี้
 
 ## 📝 คำอธิบาย
 
@@ -22,26 +20,26 @@
 ์Needed --> Fiber, MongoDB, Redis, Next, Flowbite สำหรับทำ Chart Statistics 
 
 ## 🐱 Web Development (Front-end)
-|ลำดับที่| Version | Install |
+|ลำดับที่| Name | Version | Install |
 |:----:|:------------------------:|:----:|
 |1|   Next        | **Next.js 14.2** |npx create-next-app@latest |
 |2|   Flowbite       | **latest** | npm install tailwindcss flowbite flowbite-react |
 
 ## 🧲 Web Development (Back-end)
-|ลำดับที่| Version | Install |
+|ลำดับที่| Name | Version | Install |
 |:----:|:------------------------:|:----:|
 |1|   Go        | **Go 1.23.0** | **(MacOS)** brew update&& brew install golang |
 |2|   Fiber       | **Fiber 1.17** | go get github.com/gofiber/fiber/v2 |
 
 ## 👒 Database
-|ลำดับที่| Version | Install |
+|ลำดับที่| Name | Version | Install |
 |:----:|:------------------------:|:----:|
 |1|   MongoDB        | **MongoDB 7.0.2** | brew tap mongodb/brew && brew install mongodb-community@7.0 |
 |2|   Redis       | **Redis 7.0.11** | brew install redis |
 
 ## 🤖 Tools and Utilities 
-|ลำดับที่ | Install |
-|:----:|:------------------------:|:----:|
+|ลำดับที่| Name| Install |
+|:----:|:------------------------:|
 |1|   Git & GitHub        | brew install git |
 |2|   Postman       | brew install --cask postman |
 |3|   Docker        | brew install --cask docker |
@@ -91,8 +89,9 @@
     };
     export default config;
     ````
+
     - Add TailwindCSS to `styles/globals.css`
-    ```css
+    ```javascript
     @tailwind base;
     @tailwind components;
     @tailwind utilities;
