@@ -19,15 +19,15 @@ func main() {
 
 	// Set up routes
 app.Use(cors.New(cors.Config{
-	AllowOrigins: "http://localhost:3000",
+	AllowOrigins: "http://localhost:4000",
 	AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
 
 }))
 
 	routes.Setup(app)
 
-	// Start server on port 3000
-	err := app.Listen(":5000")
+	// Start server on port 4000
+	err := app.Listen(":4000")
 	if err != nil {
 		panic(err)
 	}
