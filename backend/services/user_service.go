@@ -2,121 +2,66 @@ package services
 
 import (
 	"backend/models"
-	"backend/utils"
 	"context"
-	"encoding/json"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateUser(user models.User) (*mongo.InsertOneResult, error) {
-	collection := utils.MongoDB.Collection("users")
-
-	// Insert user into MongoDB
-	result, err := collection.InsertOne(context.Background(), user)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache result in redis
-	userData, _ := json.Marshal(user)
-	cacheKey := "user:" + user.ID.Hex()
-	utils.RedisClient.Set(context.Background(), cacheKey, userData, 0)
-
-	return result, nil
+type UserService struct {
+    collection *mongo.Collection
 }
 
-func GetUser(id primitive.ObjectID) (*models.User, error) {
-
-	// Check redis cache
-	cacheKey := "user:" + id.Hex()
-	cachedUser, err := utils.RedisClient.Get(context.Background(), cacheKey).Result()
-	if err == nil {
-		var user models.User
-		err := json.Unmarshal([]byte(cachedUser), &user)
-		if err != nil {
-			return nil, err
-		}
-		return &user, nil
-	}
-
-	// Fetch from MongoDB
-	collection := utils.MongoDB.Collection("users")
-	var user models.User
-	err = collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache result in Redis
-	userData, _ := json.Marshal(user)
-	utils.RedisClient.Set(context.Background(), cacheKey, userData, 0)
-
-	return &user, nil
+func NewUserService(collection *mongo.Collection) *UserService {
+    return &UserService{collection: collection}
 }
 
-
-func ListUser() ([]models.User, error) {
-	collection := utils.MongoDB.Collection("users")
-	cursor, err := collection.Find(context.Background(), bson.M{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(context.Background())
-
-	var users []models.User
-
-	if err = cursor.All(context.Background(), &users); err != nil {
-		return nil, err
-	}
-	return users, nil
+func (s *UserService) CreateUser(user models.User) (primitive.ObjectID, error) {
+    result, err := s.collection.InsertOne(context.Background(), user)
+    if err != nil {
+        return primitive.NilObjectID, err
+    }
+    return result.InsertedID.(primitive.ObjectID), nil
 }
 
-
-
-func UpdateUser(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
-	collection := utils.MongoDB.Collection("users")
-	filter := bson.M{"_id": id}
-	update := bson.M{"$set": updateData}
-	result, err := collection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return nil, err
-	}
-
-	// Invalidate the cache
-	cacheKey := "user:" + id.Hex()
-	utils.RedisClient.Del(context.Background(), cacheKey)
-
-	return result, nil
-}
-// DeleteUser deletes a user by ID from MongoDB and Redis.
-func DeleteUser(id primitive.ObjectID) (*mongo.DeleteResult, error) {
-	collection := utils.MongoDB.Collection("users")
-	cacheKey := "user:" + id.Hex()
-
-	// Delete user from MongoDB
-	result, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
-	if err != nil {
-		return nil, err
-	}
-
-	// Delete user from Redis cache
-	utils.RedisClient.Del(context.Background(), cacheKey)
-
-	return result, nil
+func (s *UserService) GetUser(id primitive.ObjectID) (*models.User, error) {
+    var user models.User
+    err := s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+    if err != nil {
+        return nil, err
+    }
+    return &user, nil
 }
 
-// GetUserCount retrieves the total number of users.
-func GetUserCount() (int64, error) {
-	collection := utils.MongoDB.Collection("users")
-	count, err := collection.CountDocuments(context.Background(), bson.M{})
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
+func (s *UserService) UpdateUser(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
+    filter := bson.M{"_id": id}
+    update := bson.M{"$set": updateData}
+    return s.collection.UpdateOne(context.Background(), filter, update)
+}
+
+func (s *UserService) DeleteUser(id primitive.ObjectID) (*mongo.DeleteResult, error) {
+    filter := bson.M{"_id": id}
+    return s.collection.DeleteOne(context.Background(), filter)
+}
+
+func (s *UserService) GetUserCount() (int64, error) {
+    return s.collection.CountDocuments(context.Background(), bson.M{})
+}
+
+func (s *UserService) ListUser() ([]models.User, error) {
+    var users []models.User
+    cursor, err := s.collection.Find(context.Background(), bson.M{})
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.Background())
+    for cursor.Next(context.Background()) {
+        var user models.User
+        if err := cursor.Decode(&user); err != nil {
+            return nil, err
+        }
+        users = append(users, user)
+    }
+    return users, nil
 }
