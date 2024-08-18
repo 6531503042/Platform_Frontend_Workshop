@@ -1,29 +1,28 @@
-// components/Navbar.tsx
+// components/AppNavbar.js
 import Link from 'next/link';
-import { Navbar as FlowbiteNavbar } from 'flowbite-react';
 
-const Navbar = () => {
+export default function AppNavbar() {
   return (
-    <FlowbiteNavbar fluid={true} rounded={true}>
-      <FlowbiteNavbar.Brand href="/">
-        <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">
-          My App
-        </span>
-      </FlowbiteNavbar.Brand>
-      <FlowbiteNavbar.Toggle />
-      <FlowbiteNavbar.Collapse>
-        <FlowbiteNavbar.Link href="/" active={true}>
-          Home
-        </FlowbiteNavbar.Link>
-        <FlowbiteNavbar.Link href="/user">
-          User
-        </FlowbiteNavbar.Link>
-        <FlowbiteNavbar.Link href="/chart">
-          Chart
-        </FlowbiteNavbar.Link>
-      </FlowbiteNavbar.Collapse>
-    </FlowbiteNavbar>
+    <nav className="bg-gray-800 p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link href="/" className="text-white text-xl font-semibold">
+          MyApp
+        </Link>
+        <div className="space-x-4">
+          <Link href="/" className="text-white hover:text-gray-300">
+            Home
+          </Link>
+          <Link href="/users" className="text-white hover:text-gray-300">
+            Users
+          </Link>
+          <Link href="/statistics" className="text-white hover:text-gray-300">
+            Statistics
+          </Link>
+        </div>
+        <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          Login
+        </button>
+      </div>
+    </nav>
   );
-};
-
-export default Navbar;
+}
