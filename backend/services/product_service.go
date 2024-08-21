@@ -4,6 +4,7 @@ import (
 	"backend/models"
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
@@ -36,10 +37,22 @@ func (s *ProductService) CreateProduct(product models.Product) (*mongo.InsertOne
 		return nil, err
 	}
 
+	// Validate required fields
+	if product.Name == "" {
+		return nil, errors.New("missing required field: name")
+	}
+	if product.Price == 0 {
+		return nil, errors.New("missing required field: price")
+	}
+
 	// Cache result in Redis
 	productData, _ := json.Marshal(product)
 	cacheKey := "product:" + product.ID.Hex()
-	s.redisClient.Set(context.Background(), cacheKey, productData, 0)
+	s.redisClient.Set(context.Background(), cacheKey, productData, 0).Err()
+
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
