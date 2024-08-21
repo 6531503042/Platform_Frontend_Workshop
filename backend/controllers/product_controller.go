@@ -4,6 +4,7 @@ import (
 	"backend/models"
 	"backend/services"
 	"backend/utils"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,17 +30,18 @@ func NewProductController() *ProductController {
 func (pc *ProductController) CreateProduct(c *fiber.Ctx) error {
 	var product models.Product
 	if err := c.BodyParser(&product); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		log.Printf("Error parsing product data: %v", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product data"})
 	}
 
-	// Add validation here
 	if product.Name == "" || product.Price <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product data"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Product name and price must be valid"})
 	}
 
 	result, err := pc.service.CreateProduct(product)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Printf("Error creating product: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create product"})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(result)
@@ -50,12 +52,14 @@ func (pc *ProductController) GetProduct(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
+		log.Printf("Invalid product ID format: %v", err)
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid product ID")
 	}
 
 	product, err := pc.service.GetProduct(id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get product")
+		log.Printf("Error retrieving product: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to retrieve product")
 	}
 
 	if product == nil {
@@ -133,7 +137,8 @@ func (pc *ProductController) GetProductStatistics(c *fiber.Ctx) error {
 
 	statistics, err := pc.service.AggregateProducts(pipeline)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Printf("Error aggregating product statistics: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve product statistics"})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(statistics)
