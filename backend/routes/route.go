@@ -8,14 +8,10 @@ import (
 
 func Setup(app *fiber.App) {
 
-	
-
 	// Initialize controller
 	userController := controllers.NewUserController()
 	productController := controllers.NewProductController()
 	orderController := controllers.NewOrderController()
-	
-
 
 	//User
 	app.Post("/users", userController.CreateUser)
