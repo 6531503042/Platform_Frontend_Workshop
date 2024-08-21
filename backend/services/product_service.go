@@ -13,7 +13,7 @@ import (
 )
 
 type ProductService struct {
-	collection *mongo.Collection
+	collection  *mongo.Collection
 	redisClient *redis.Client
 }
 
@@ -26,17 +26,12 @@ type ProductStatistics struct {
 // NewProductService creates a new instance of ProductService
 func NewProductService(collection *mongo.Collection, redisClient *redis.Client) *ProductService {
 	return &ProductService{
-		collection: collection,
+		collection:  collection,
 		redisClient: redisClient,
 	}
 }
 
 func (s *ProductService) CreateProduct(product models.Product) (*mongo.InsertOneResult, error) {
-	result, err := s.collection.InsertOne(context.Background(), product)
-	if err != nil {
-		return nil, err
-	}
-
 	// Validate required fields
 	if product.Name == "" {
 		return nil, errors.New("missing required field: name")
@@ -45,13 +40,22 @@ func (s *ProductService) CreateProduct(product models.Product) (*mongo.InsertOne
 		return nil, errors.New("missing required field: price")
 	}
 
-	// Cache result in Redis
-	productData, _ := json.Marshal(product)
-	cacheKey := "product:" + product.ID.Hex()
-	s.redisClient.Set(context.Background(), cacheKey, productData, 0).Err()
-
+	// Insert product into MongoDB
+	result, err := s.collection.InsertOne(context.Background(), product)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to insert product into MongoDB: " + err.Error())
+	}
+
+	// Cache the product in Redis
+	productData, err := json.Marshal(product)
+	if err != nil {
+		return nil, errors.New("failed to marshal product data: " + err.Error())
+	}
+
+	cacheKey := "product:" + product.ID.Hex()
+	err = s.redisClient.Set(context.Background(), cacheKey, productData, 0).Err()
+	if err != nil {
+		return nil, errors.New("failed to cache product in Redis: " + err.Error())
 	}
 
 	return result, nil
@@ -61,24 +65,33 @@ func (s *ProductService) GetProduct(id primitive.ObjectID) (*models.Product, err
 	// Check Redis cache
 	cacheKey := "product:" + id.Hex()
 	cachedProduct, err := s.redisClient.Get(context.Background(), cacheKey).Result()
-	if err == nil {
+	if err == redis.Nil {
+		// Product not found in Redis, check MongoDB
 		var product models.Product
-		if err := json.Unmarshal([]byte(cachedProduct), &product); err != nil {
-			return nil, err
+		err = s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&product)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return nil, errors.New("product not found")
+			}
+			return nil, errors.New("failed to fetch product from MongoDB: " + err.Error())
 		}
+
+		// Cache result in Redis
+		productData, err := json.Marshal(product)
+		if err != nil {
+			return nil, errors.New("failed to marshal product data: " + err.Error())
+		}
+		s.redisClient.Set(context.Background(), cacheKey, productData, 0)
+
 		return &product, nil
+	} else if err != nil {
+		return nil, errors.New("failed to retrieve product from Redis: " + err.Error())
 	}
 
-	// Fetch from MongoDB
 	var product models.Product
-	err = s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&product)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal([]byte(cachedProduct), &product); err != nil {
+		return nil, errors.New("failed to unmarshal cached product data: " + err.Error())
 	}
-
-	// Cache result in Redis
-	productData, _ := json.Marshal(product)
-	s.redisClient.Set(context.Background(), cacheKey, productData, 0)
 
 	return &product, nil
 }
@@ -86,13 +99,13 @@ func (s *ProductService) GetProduct(id primitive.ObjectID) (*models.Product, err
 func (s *ProductService) ListProduct() ([]models.Product, error) {
 	cursor, err := s.collection.Find(context.Background(), bson.M{})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to fetch products from MongoDB: " + err.Error())
 	}
 	defer cursor.Close(context.Background())
 
 	var products []models.Product
 	if err := cursor.All(context.Background(), &products); err != nil {
-		return nil, err
+		return nil, errors.New("failed to decode products: " + err.Error())
 	}
 	return products, nil
 }
@@ -102,12 +115,14 @@ func (s *ProductService) UpdateProduct(id primitive.ObjectID, updateData bson.M)
 	update := bson.M{"$set": updateData}
 	result, err := s.collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to update product in MongoDB: " + err.Error())
 	}
 
 	// Invalidate the cache
 	cacheKey := "product:" + id.Hex()
-	s.redisClient.Del(context.Background(), cacheKey)
+	if err := s.redisClient.Del(context.Background(), cacheKey).Err(); err != nil {
+		return nil, errors.New("failed to invalidate cache: " + err.Error())
+	}
 
 	return result, nil
 }
@@ -118,11 +133,13 @@ func (s *ProductService) DeleteProduct(id primitive.ObjectID) (*mongo.DeleteResu
 	// Delete product from MongoDB
 	result, err := s.collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to delete product from MongoDB: " + err.Error())
 	}
 
 	// Invalidate the cache
-	s.redisClient.Del(context.Background(), cacheKey)
+	if err := s.redisClient.Del(context.Background(), cacheKey).Err(); err != nil {
+		return nil, errors.New("failed to invalidate cache: " + err.Error())
+	}
 
 	return result, nil
 }
@@ -130,7 +147,7 @@ func (s *ProductService) DeleteProduct(id primitive.ObjectID) (*mongo.DeleteResu
 func (s *ProductService) GetProductCount() (int64, error) {
 	count, err := s.collection.CountDocuments(context.Background(), bson.M{})
 	if err != nil {
-		return 0, err
+		return 0, errors.New("failed to count products in MongoDB: " + err.Error())
 	}
 	return count, nil
 }
@@ -138,15 +155,14 @@ func (s *ProductService) GetProductCount() (int64, error) {
 func (s *ProductService) AggregateProducts(pipeline mongo.Pipeline) ([]ProductStatistics, error) {
 	cursor, err := s.collection.Aggregate(context.Background(), pipeline)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to aggregate products in MongoDB: " + err.Error())
 	}
 	defer cursor.Close(context.Background())
 
 	var statistics []ProductStatistics
 	if err := cursor.All(context.Background(), &statistics); err != nil {
-		return nil, err
+		return nil, errors.New("failed to decode aggregation results: " + err.Error())
 	}
 
 	return statistics, nil
 }
-
