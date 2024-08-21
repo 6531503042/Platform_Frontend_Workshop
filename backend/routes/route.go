@@ -4,6 +4,7 @@ import (
 	"backend/controllers"
 
 	"github.com/gofiber/fiber/v2"
+	fiberSwagger "github.com/swaggo/fiber-swagger"
 ) 
 
 func Setup(app *fiber.App) {
@@ -24,7 +25,7 @@ func Setup(app *fiber.App) {
 
 	//Product
 	app.Post("/products", productController.CreateProduct)
-	app.Get("/products/:id", productController.GetProduct)
+	app.Get("/products/:id", productController.GetProductById)
 	app.Get("/products", productController.ListProduct)
 	app.Put("/products/:id", productController.UpdateProduct)
 	app.Delete("/products/:id", productController.DeleteProduct)
@@ -38,4 +39,7 @@ func Setup(app *fiber.App) {
 	app.Put("/orders/:id", orderController.UpdateOrder)
 	app.Delete("/orders/:id", orderController.DeleteOrder)
 	app.Get("/order-statistics", orderController.GetOrderStatistics)
+
+	//Wagger UI
+	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 }
