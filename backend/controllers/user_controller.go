@@ -24,6 +24,16 @@ func NewUserController() *UserController {
 	}
 }
 
+// @Summary Create a new user
+// @Description Create a new user with the provided details
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User Data"
+// @Success 201 {object} models.User
+// @Failure 400 {object} fiber.Map
+// @Failure 500 {object} fiber.Map
+// @Router /users [post]
 // CreateUser handles user creation requests.
 func (uc *UserController) CreateUser(c *fiber.Ctx) error {
 	var user models.User
@@ -39,7 +49,17 @@ func (uc *UserController) CreateUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
-// GetUser handles fetching a user by ID.
+// @Summary Get a user by ID
+// @Description Fetch a user by their ID
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} models.User
+// @Failure 400 {object} fiber.Map
+// @Failure 404 {object} fiber.Map
+// @Failure 500 {object} fiber.Map
+// @Router /users/{id} [get]
 func (uc *UserController) GetUser(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
@@ -60,7 +80,18 @@ func (uc *UserController) GetUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(user)
 }
 
-// UpdateUser handles requests to update a user's information.
+// @Summary Update a user
+// @Description Update user details by ID
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param user body bson.M true "User Data"
+// @Success 200 {object} mongo.UpdateResult
+// @Failure 400 {object} fiber.Map
+// @Failure 404 {object} fiber.Map
+// @Failure 500 {object} fiber.Map
+// @Router /users/{id} [put]
 func (uc *UserController) UpdateUser(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
@@ -86,7 +117,18 @@ func (uc *UserController) UpdateUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(result)
 }
 
-// DeleteUser handles requests to delete a user by ID.
+
+//@Summary Delete a user
+//@Description Delete a user by ID
+//@Tags Users
+//@Accept json
+//@Produce json
+//@Param id path string true "User ID"
+//@Success 200 {object} models.User
+//@Failure 400 {object} fiber.Map
+//@Failure 404 {object} fiber.Map
+//@Failure 500 {object} fiber.Map
+//@Router /users/{id} [delete]
 func (uc *UserController) DeleteUser(c *fiber.Ctx) error {
 	idHex := c.Params("id")
 	id, err := primitive.ObjectIDFromHex(idHex)
@@ -107,7 +149,14 @@ func (uc *UserController) DeleteUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
 }
 
-// GetUserCount handles requests to get the total number of users.
+// @Summary Get user count
+// @Description Retrieve the total number of users
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Success 200 {object} fiber.Map
+// @Failure 500 {object} fiber.Map
+// @Router /users/count [get]
 func (uc *UserController) GetUserCount(c *fiber.Ctx) error {
 	count, err := uc.service.GetUserCount()
 	if err != nil {
@@ -118,7 +167,14 @@ func (uc *UserController) GetUserCount(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"userCount": count})
 }
 
-// ListUsers handles requests to list all users.
+// @Summary List users
+// @Description Retrieve a list of all users
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User
+// @Failure 500 {object} fiber.Map
+// @Router /users [get]
 func (uc *UserController) ListUsers(c *fiber.Ctx) error {
 	users, err := uc.service.ListUser()
 	if err != nil {
@@ -128,7 +184,14 @@ func (uc *UserController) ListUsers(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(users)
 }
 
-// GetUserStatistics provides aggregated data for charts.
+// @Summary Get user statistics
+// @Description Retrieve aggregated user data for charts
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Success 200 {array} bson.M
+// @Failure 500 {object} fiber.Map
+// @Router /users/statistics [get]
 func (uc *UserController) GetUserStatistics(c *fiber.Ctx) error {
 	collection := utils.MongoDB.Collection("users")
 
