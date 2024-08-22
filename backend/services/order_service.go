@@ -52,7 +52,7 @@ func (s *OrderService) GetOrderById(id primitive.ObjectID) (*models.Order, error
 	val, err := s.redisClient.Get(ctx, id.Hex()).Result()
 	if err == redis.Nil {
 		var order models.Order
-		err := s.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&order)
+		err := s.collection.FindOne(ctx, bson.M{"id": id}).Decode(&order)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (s *OrderService) UpdateOrder(id primitive.ObjectID, update bson.M) (*mongo
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	result, err := s.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
+	result, err := s.collection.UpdateOne(ctx, bson.M{"id": id}, bson.M{"$set": update})
 	if err == nil {
 		s.redisClient.Del(ctx, id.Hex())
 	}
@@ -84,7 +84,7 @@ func (s *OrderService) DeleteOrder(id primitive.ObjectID) (*mongo.DeleteResult, 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	result, err := s.collection.DeleteOne(ctx, bson.M{"_id": id})
+	result, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
 	if err == nil {
 		s.redisClient.Del(ctx, id.Hex())
 	}
@@ -114,15 +114,15 @@ func (s *OrderService) GetAllOrders() ([]models.Order, error) {
 func (s *OrderService) GetOrderStatistics() ([]OrderStatistics, error) {
 	pipeline := mongo.Pipeline{
 		{{Key: "$group", Value: bson.D{
-			{Key: "_id", Value: bson.D{
+			{Key: "id", Value: bson.D{
 				{Key: "month", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}},
 				{Key: "status", Value: "$status"},
 			}},
 			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
 		}}},
 		{{Key: "$sort", Value: bson.D{
-			{Key: "_id.month", Value: 1},
-			{Key: "_id.status", Value: 1},
+			{Key: "id.month", Value: 1},
+			{Key: "id.status", Value: 1},
 		}}},
 	}
 
@@ -137,8 +137,8 @@ func (s *OrderService) GetOrderStatistics() ([]OrderStatistics, error) {
 		var result OrderStatistics
 		raw := cursor.Current
 
-		month := raw.Lookup("_id").Document().Lookup("month").StringValue()
-		status := raw.Lookup("_id").Document().Lookup("status").StringValue()
+		month := raw.Lookup("id").Document().Lookup("month").StringValue()
+		status := raw.Lookup("id").Document().Lookup("status").StringValue()
 		count := int(raw.Lookup("count").Int32())
 
 		result.Month = month

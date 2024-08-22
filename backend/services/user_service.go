@@ -58,7 +58,7 @@ func (s *UserService) CreateUser(user models.User) (primitive.ObjectID, error) {
 
 func (s *UserService) GetUser(id primitive.ObjectID) (*models.User, error) {
     var user models.User
-    err := s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+    err := s.collection.FindOne(context.Background(), bson.M{"id": id}).Decode(&user)
     if err != nil {
         return nil, err
     }
@@ -71,7 +71,7 @@ func (s *UserService) UpdateUser(id primitive.ObjectID, updateData bson.M) (*mon
         return nil, errors.New("no data to update")
     }
 
-    filter := bson.M{"_id": id}
+    filter := bson.M{"id": id}
 	update := bson.M{"$set": updateData}
 	result, err := s.collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *UserService) UpdateUser(id primitive.ObjectID, updateData bson.M) (*mon
 }
 
 func (s *UserService) DeleteUser(id primitive.ObjectID) (*mongo.DeleteResult, error) {
-    filter := bson.M{"_id": id}
+    filter := bson.M{"id": id}
     result, err :=  s.collection.DeleteOne(context.Background(), filter)
     
     if err != nil {

@@ -129,10 +129,10 @@ func (pc *ProductController) ListProduct(c *fiber.Ctx) error {
 func (pc *ProductController) GetProductStatistics(c *fiber.Ctx) error {
 	pipeline := mongo.Pipeline{
 		{{Key: "$group", Value: bson.D{
-			{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, // Group by month
+			{Key: "id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, // Group by month
 			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}, // Count documents
 		}}},
-		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}}, // Sort by month
+		{{Key: "$sort", Value: bson.D{{Key: "id", Value: 1}}}}, // Sort by month
 	}
 
 	statistics, err := pc.service.AggregateProducts(pipeline)

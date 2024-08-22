@@ -68,7 +68,7 @@ func (s *ProductService) GetProduct(id primitive.ObjectID) (*models.Product, err
 	if err == redis.Nil {
 		// Product not found in Redis, check MongoDB
 		var product models.Product
-		err = s.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&product)
+		err = s.collection.FindOne(context.Background(), bson.M{"id": id}).Decode(&product)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				return nil, errors.New("product not found")
@@ -111,7 +111,7 @@ func (s *ProductService) ListProduct() ([]models.Product, error) {
 }
 
 func (s *ProductService) UpdateProduct(id primitive.ObjectID, updateData bson.M) (*mongo.UpdateResult, error) {
-	filter := bson.M{"_id": id}
+	filter := bson.M{"id": id}
 	update := bson.M{"$set": updateData}
 	result, err := s.collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *ProductService) DeleteProduct(id primitive.ObjectID) (*mongo.DeleteResu
 	cacheKey := "product:" + id.Hex()
 
 	// Delete product from MongoDB
-	result, err := s.collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	result, err := s.collection.DeleteOne(context.Background(), bson.M{"id": id})
 	if err != nil {
 		return nil, errors.New("failed to delete product from MongoDB: " + err.Error())
 	}

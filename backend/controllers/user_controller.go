@@ -133,8 +133,8 @@ func (uc *UserController) GetUserStatistics(c *fiber.Ctx) error {
 	collection := utils.MongoDB.Collection("users")
 
 	pipeline := mongo.Pipeline{
-		{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
-		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
+		{{Key: "$group", Value: bson.D{{Key: "id", Value: bson.D{{Key: "$substr", Value: bson.A{"$createdAt", 0, 7}}}}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+		{{Key: "$sort", Value: bson.D{{Key: "id", Value: 1}}}},
 	}
 
 	cursor, err := collection.Aggregate(context.Background(), pipeline)
